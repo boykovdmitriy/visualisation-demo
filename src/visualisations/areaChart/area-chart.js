@@ -1,30 +1,19 @@
 import * as d3 from 'd3';
+
 import './area-chart.scss';
 
 const baseColor = '#444444';
-const textColor = '#9B9B9B';
+const textColor = '#737070';
 const circleColor = '#E43556';
-const blueCircleColor = '#6549B8';
 const circleInnerColor = 'white';
-const textFontSize = '12px';
+const textFontSize = '14px';
 const yStrokeColor = '#282828';
 const yStrokeDash = "6, 3";
 const xAxisOffset = 20;
+const wrapperWidth = 56;
+const wrapperHeight = 40;
 
-const months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec'
-];
+const formatMonth = d3.timeFormat('%b')
 
 function addXGridGradient(svg) {
   const colorScale = d3.scaleLinear().range([textColor, '#12110F', 'black']).domain([1, 2, 3]);
@@ -45,10 +34,9 @@ function addXGridGradient(svg) {
     .attr("stop-color", colorScale(3));
 }
 
-function addChartGradient(svg, theme, uniqKey) {
-  const redGradient = ['rgba(233, 80, 90, 0.9)', 'rgba(233, 80, 90, 0.1)'];
-  const blueGradient = ['rgba(101, 73, 184, 0.9)', 'rgba(101, 73, 184, 0.1)'];
-  const colorScale = d3.scaleLinear().range(theme === 'redStyle' ? redGradient : blueGradient).domain([1, 2]);
+function addChartGradient(svg, uniqKey) {
+  const gradient = ['rgba(67,66,66,0.9)', 'rgba(117,117,117,0.1)'];
+  const colorScale = d3.scaleLinear().range(gradient).domain([1, 2]);
   const linearGradient = svg.append("defs")
     .append("linearGradient")
     .attr("id", `area-chart__area-gradient${uniqKey}`)
@@ -64,9 +52,8 @@ function addChartGradient(svg, theme, uniqKey) {
 }
 
 function addLineGradient(svg, theme, uniqKey) {
-  const redGradient = ['white', '#E43556'];
-  const blueGradient = ['white', '#8560F9'];
-  const colorScale = d3.scaleLinear().range(theme === 'redStyle' ? redGradient : blueGradient).domain([1, 2]);
+  const gradient = ['white', 'rgb(114,97,97)'];
+  const colorScale = d3.scaleLinear().range(gradient).domain([1, 2]);
   const linearGradient = svg.append("defs")
     .append("linearGradient")
     .attr("id", `area-chart__line-gradient${uniqKey}`)
@@ -84,37 +71,80 @@ function addLineGradient(svg, theme, uniqKey) {
 function calculateTextPositions(items) {
   const labelsArray = [];
   for (let i = 0; i < items.length; i++) {
-    const month = (new Date(items[i].label)).getMonth();
-    labelsArray.push(months[month]);
+    labelsArray.push(formatMonth(items[i].label.toDate()));
   }
   const uniqMonths = Array.from(new Set(labelsArray));
 
   const xPositions = uniqMonths.map(month => {
     const start = labelsArray.indexOf(month);
-    const end = labelsArray.lastIndexOf(month);
-    return start + (end - start) / 2;
+    const end = labelsArray.lastIndexOf(month) < (labelsArray.length - 1) ? labelsArray.lastIndexOf(month) + 1: labelsArray.lastIndexOf(month);
+    let dateStart = items[start].label.toDate();
+    let endDate = items[end].label.toDate();
+    if(start !== 0) {
+      dateStart.setDate(1);
+    }
+    if(end !== labelsArray.length - 1) {
+      endDate.setDate(0);
+    }
+    return new Date((dateStart.getTime() + endDate.getTime()) / 2);
   });
+
   return uniqMonths.map((month, i) => ({
     month,
     position: xPositions[i]
   }))
 }
 
-function renderAxis({svg, yScale, xScale, height, maxValue, width, items}) {
+function removeAxisParts({svg}) {
+  const yAxis = svg.select('.area-chart__y-axis');
+  yAxis
+      .selectAll('text')
+      .remove();
+  yAxis.selectAll('path').remove();
+  yAxis.selectAll('g:first-of-type').remove();
+
+  svg
+      .select('.area-chart__x-axis')
+      .selectAll('line').remove();
+
+  const xGridElement = svg.select(".area-chart__x-grid")
+
+  xGridElement.select('path').remove();
+  xGridElement.select('.tick').remove();
+  xGridElement.selectAll('text').remove();
+}
+
+function createAxis({svg}) {
+  svg.append("g")
+      .attr("class", "area-chart__x-axis")
+  svg.append("g")
+      .attr("class", "area-chart__x-grid")
+      .attr("stroke", "url(#area-chart__x-axis-gradient)")
+  svg.append("g")
+      .attr("class", "area-chart__y-axis")
+      .style("stroke-dasharray", yStrokeDash)
+}
+
+function updateAxis({
+                      svg,
+                      yScale,
+                      xScale,
+                      height,
+                      maxValue,
+                      width,
+                      items}) {
   const yAxis = d3.axisRight(yScale);
   const xAxis = d3.axisBottom(xScale);
   const positions = calculateTextPositions(items);
 
-  const xAxisElement = svg.append("g")
-    .attr("class", "area-chart__x-axis")
+  const xAxisElement = svg.select(".area-chart__x-axis")
     .attr('transform', `translate(0, ${height - xAxisOffset})`)
     .call(xAxis.tickSize(0));
 
   xAxisElement.select('path').attr('stroke', baseColor);
   xAxisElement.selectAll('text').remove();
 
-  const xGridElement = svg.append("g")
-    .attr("class", "area-chart__x-grid")
+  const xGridElement = svg.select(".area-chart__x-grid")
     .attr("stroke", "url(#area-chart__x-axis-gradient)")
     .call(
       xAxis
@@ -124,19 +154,18 @@ function renderAxis({svg, yScale, xScale, height, maxValue, width, items}) {
 
   xGridElement.selectAll('line').attr("stroke", yStrokeColor);
 
-  const yAxisElement = svg.append("g")
-    .attr("class", "area-chart__y-axis")
+  const yAxisElement = svg.select(".area-chart__y-axis")
     .style("stroke-dasharray", yStrokeDash)
     .call(
       yAxis
         .tickValues([0, maxValue / 2 - maxValue / 20, maxValue - maxValue / 20])
         .tickSize(width)
     );
+  svg.select(".area-chart__positions-container").remove();
+
   const positionsContainer = svg
       .append('g')
       .attr("class", "area-chart__positions-container")
-
-
   positions.forEach(({
                        position, month
                      }) => {
@@ -151,16 +180,7 @@ function renderAxis({svg, yScale, xScale, height, maxValue, width, items}) {
 
   yAxisElement.selectAll('line').attr('stroke', yStrokeColor);
 
-
-  yAxisElement.selectAll('text').remove();
-  yAxisElement.selectAll('path').remove();
-  yAxisElement.selectAll('g:first-of-type').remove();
-
-  xAxisElement.selectAll('line').remove();
-
-  xGridElement.select('path').remove();
-  xGridElement.select('.tick').remove();
-  xGridElement.selectAll('text').remove();
+  removeAxisParts({svg});
 
   return {
     xAxisElement,
@@ -168,13 +188,11 @@ function renderAxis({svg, yScale, xScale, height, maxValue, width, items}) {
   }
 }
 
-function buildTooltip({group, x, y, tooltipValue, additionalClass, theme}) {
+function buildTooltip({group, x, y, tooltipValue, additionalClass}) {
   const fo = group
     .append('foreignObject')
     .style('pointer-events', 'none');
 
-  const wrapperWidth = 56;
-  const wrapperHeight = 40;
   const tooltip = fo
     .attr('width', wrapperWidth)
     .attr('height', wrapperHeight)
@@ -184,7 +202,6 @@ function buildTooltip({group, x, y, tooltipValue, additionalClass, theme}) {
 
   tooltip
     .classed('area-chart__tooltip', true)
-    .classed('area-chart__tooltip--blue', theme !== 'redStyle')
     .classed(additionalClass, true);
 
   tooltip.append('div')
@@ -198,144 +215,88 @@ function buildTooltip({group, x, y, tooltipValue, additionalClass, theme}) {
     .attr('class', 'area-chart__arrow')
 }
 
-function renderCircle({cx, cy, isActive, svg, theme}) {
+function renderCircle({cx, cy, svg}) {
   const circleGroup = svg
     .append('g')
-    .attr('class', `area-chart__circle-group ${isActive ? 'area-chart__circle-group--active' : 'area-chart__circle-group--inactive'}`);
-  const themedCircleColor = theme === 'redStyle' ? circleColor : blueCircleColor;
+    .attr('class', `area-chart__circle-group 'area-chart__circle-group--active'`);
 
   circleGroup
     .append('circle')
     .attr('r', 5)
     .attr('cx', cx)
     .attr('cy', cy)
-    .attr('fill', isActive ? themedCircleColor : circleInnerColor);
+    .attr('fill', circleColor);
 
   circleGroup
     .append('circle')
     .attr('r', 2)
     .attr('cx', cx)
     .attr('cy', cy)
-    .attr('fill', isActive ? circleInnerColor : themedCircleColor)
+    .attr('fill',circleInnerColor)
 }
 
-function renderHiddenBars({items, yScale, xScale, svg, width, height, theme}) {
-  const barWidth = width / (items.length - 1);
-  const hiddenBarGroup = svg
-      .append('g')
-      .attr('class', `area-chart__hidden-bars`);
+function findDataItem(data, datePoint) {
+  const i = d3.bisector(d => d.label.toDate()).left(data, datePoint); // returns the index to the current data item
 
-  items.forEach((value, i) => {
-    const isBorderValues = i === 0 || i === items.length - 1;
-    const barOffset = i === 0 ? 0 : barWidth / 2;
-    const localBarWidth = isBorderValues ? barWidth / 2 : barWidth;
-    hiddenBarGroup
-      .append('rect')
-      .attr('x', xScale(i) - barOffset)
-      .attr('y', 0)
-      .attr('width', localBarWidth)
-      .attr('height', height)
-      .attr('fill', 'transparent')
-      .on('mouseover', () => {
-        const tooltipGroup = svg
-            .append('g')
-            .attr('class', 'area-chart__tooltip-group');
-        renderCircle({
-          cx: xScale(i),
-          cy: yScale(value.value),
-          svg: tooltipGroup,
-          isActive: true,
-          theme
-        });
-        buildTooltip({
-          group: tooltipGroup,
-          x: xScale(i),
-          y: yScale(value.value),
-          tooltipValue: value.tooltipValue,
-          theme
-        })
-      })
-      .on('mouseout', () => {
-        svg.select('.area-chart__tooltip-group').remove();
-        svg.select('foreignObject').remove();
-      });
-  });
-}
-
-function renderMaxMinValues({
-                              xScale, yScale, maxValue, svg, items, theme
-                            }) {
-  const container = svg
-      .append('g')
-      .attr('class', 'area-chart__min-max-container')
-  const maxIndex = items.findIndex(x => x.value === maxValue);
-  renderCircle({
-    cx: xScale(maxIndex),
-    cy: yScale(maxValue),
-    svg: container,
-    theme
-  });
-
-  container
-    .append('g')
-    .attr('width', '50px')
-    .attr('transform', `translate(${xScale(maxIndex)}, ${yScale(maxValue) - 20})`)
-    .attr('fill', 'white')
-    .append('text')
-    .style('font-size', textFontSize)
-    .attr('text-anchor', 'middle')
-    .text(items[maxIndex].tooltipValue);
+  if (i === 0) return data[i];
+  const d0 = data[i - 1].label.toDate();
+  if (i >= data.length) return data[i - 1];
+  const d1 = data[i].label.toDate();
+  // work out which date value is closest to the mouse
+  const realIndex = datePoint - d0 > d1 - datePoint ? i : i - 1;
+  return data[realIndex];
 }
 
 export function areaChart({
-                            data, width = 510, height = 255, selector, theme = 'redStyle', uniqKey
+                            data, width = 510, height = 255, selector, uniqKey
                           }) {
-  const maxValue = Math.max(...data.map(x => x.value));
-  const minValue = Math.min(...data.map(x => x.value));
-  const lineCurve = theme === 'redStyle' ? d3.curveCatmullRom.alpha(0.5) : d3.curveLinear;
+  const maxValue = Math.max(...data.map(x => x.value), 0);
+  const minValue = Math.min(...data.map(x => x.value), 0);
 
   /*calculate metrics*/
-  const xScale = d3.scaleLinear()
-    .domain([0, data.length - 1])
+  const xScale = d3.scaleTime()
+    .domain([data[0].label.toDate(), data[data.length - 1].label.toDate()])
     .range([0, width]);
 
   const yScale = d3.scaleLinear()
     .range([height - 20, 0])
-    .domain([0, maxValue + maxValue / 10]);
+    .domain([minValue, maxValue + maxValue / 10]);
 
   const lineScale = d3.line()
-    .x(function (d, i) {
-      return xScale(i);
+    .x(function (d) {
+      return xScale(d.label.toDate());
     })
     .y(function (d) {
       return yScale(d.value);
     })
-    .curve(lineCurve);
+      .curve(d3.curveCatmullRom.alpha(0.5));
 
   const areaScale = d3.area()
-    .x(function (d, i) {
-      return xScale(i);
+    .x(function (d) {
+      return xScale(d.label.toDate());
     })
     .y0(height - 20)
     .y1(function (d) {
       return yScale(d.value);
     })
-    .curve(lineCurve);
+      .curve(d3.curveCatmullRom.alpha(0.5));
+
 
   const chartContainer = d3.select(selector)
     .append('svg')
     .attr("class", "area-chart");
 
   addXGridGradient(chartContainer);
-  addChartGradient(chartContainer, theme, uniqKey);
-  addLineGradient(chartContainer, theme, uniqKey);
+  addChartGradient(chartContainer, uniqKey);
+  addLineGradient(chartContainer, uniqKey);
 
   const svg = chartContainer.data(data)
     .attr('width', width)
     .attr('height', height)
     .append('g');
 
-  renderAxis({svg, height, maxValue, width, items: data, xScale, yScale});
+  createAxis({svg});
+  updateAxis({svg, height, maxValue, width, items: data, xScale, yScale});
 
   svg
     .append('g')
@@ -354,8 +315,68 @@ export function areaChart({
     .attr('stroke', `url(#area-chart__line-gradient${uniqKey})`)
     .attr('stroke-width', '1px')
     .attr('d', lineScale);
-  renderMaxMinValues({maxValue, minValue, svg, items: data, yScale, xScale, theme});
-  renderHiddenBars({items: data, yScale, xScale, height, width, svg, theme});
+
+  chartContainer
+  .on('mouseover', function () {
+    const gr = svg
+        .append('g')
+        .attr('class', 'area-chart__tooltip-group')
+    const mouseData = d3.mouse(this);
+
+    const datePoint = xScale.invert(mouseData[0]);
+    const item = findDataItem(data, datePoint);
+
+    renderCircle({
+      cx: xScale(item.label.toDate()),
+      cy: yScale(item.value),
+      svg: gr,
+    });
+    buildTooltip({
+      group: gr,
+      x: xScale(item.label.toDate()),
+      y: yScale(item.value),
+      tooltipValue: item.tooltipValue,
+    })
+  })
+  .on('mousemove', function () {
+    const mouseData = d3.mouse(this);
+    const datePoint = xScale.invert(mouseData[0]);
+    const item = findDataItem(data, datePoint);
+    const group = svg
+        .select('.area-chart__tooltip-group');
+    if(!group.select(`[data-item="${item.label.toDate()}"]`).empty()) {
+      return;
+    }
+    group.attr('data-item', item.label.toDate())
+    group
+        .selectAll('circle')
+        .transition()
+        .duration(50)
+        .ease(d3.easeLinear)
+        .attr('cx', xScale(item.label.toDate()))
+        .attr('cy', yScale(item.value));
+
+    group
+        .select('foreignObject')
+        .transition()
+        .duration(50)
+        .ease(d3.easeLinear)
+        .attr('x', xScale(item.label.toDate()) - wrapperWidth / 2)
+        .attr('y', yScale(item.value) - wrapperHeight);
+
+    group
+        .select('.area-chart__content')
+        .html(item.tooltipValue);
+  })
+  .on('mouseout', () => {
+        svg
+            .select('.area-chart__tooltip-group')
+            .attr('class', '')
+            .transition()
+            .duration(400)
+            .style('opacity', 0)
+            .remove()
+  })
 
   return (newProps) => {
     xScale.range([0, newProps.width]);
@@ -375,16 +396,6 @@ export function areaChart({
         .datum(data)
         .attr('d', lineScale);
 
-    svg.selectAll('.area-chart__x-axis').remove();
-    svg.selectAll('.area-chart__x-grid').remove();
-    svg.selectAll('.area-chart__y-axis').remove();
-    svg.selectAll('.area-chart__min-max-container').remove();
-    svg.selectAll('.area-chart__positions-container').remove();
-    svg.selectAll('.area-chart__hidden-bars').remove();
-    renderAxis({svg, height: newProps.height, maxValue, width: newProps.width, items: data, xScale, yScale});
-
-    renderMaxMinValues({maxValue, minValue, svg, items: data, yScale, xScale, theme});
-    renderHiddenBars({items: data, yScale, xScale, height, width, svg, theme});
-
+    updateAxis({svg, height: newProps.height, maxValue, width: newProps.width, items: data, xScale, yScale});
   };
 }

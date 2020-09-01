@@ -5,6 +5,10 @@
     position: relative;
     pointer-events: none;
 
+    &-group {
+      pointer-events: none;
+    }
+
     &--blue {
       .area-chart__content,
       .area-chart__container,

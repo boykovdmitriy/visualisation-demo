@@ -1,44 +1,48 @@
+import moment from 'moment';
 import { areaChart } from "./area-chart";
+
+const dateFormat = 'YYYY-MM-DD HH:mm:ss';
+
 const lineChartMockupData = [
   {
     contents_count: 35,
-    current_interval: "2019-02-08T22:02:09.000+00:00",
+    current_interval: moment("2019-02-08 22:02:09", dateFormat),
   },
   {
     contents_count: 20,
-    current_interval: "2019-02-10T05:14:13.000+00:00",
+    current_interval: moment("2019-02-10 05:14:13", dateFormat),
   },
   {
     contents_count: 17,
-    current_interval: "2019-02-11T12:26:17.000+00:00",
+    current_interval: moment("2019-02-11 12:26:17", dateFormat),
   },
   {
     contents_count: 25,
-    current_interval: "2019-02-12T19:38:21.000+00:00",
+    current_interval: moment("2019-02-12 19:38:21", dateFormat),
   },
   {
     contents_count: 18,
-    current_interval: "2019-02-14T02:50:25.000+00:00",
+    current_interval: moment("2019-02-14 02:50:25", dateFormat),
   },
   {
     contents_count: 12,
-    current_interval: "2019-02-15T10:02:29.000+00:00",
+    current_interval: moment("2019-02-15 10:02:29", dateFormat),
   },
   {
     contents_count: 33,
-    current_interval: "2019-03-16T17:14:33.000+00:00",
+    current_interval: moment("2019-03-16 17:14:33", dateFormat),
   },
   {
     contents_count: 13,
-    current_interval: "2019-03-18T00:26:37.000+00:00",
+    current_interval: moment("2019-03-18 00:26:37", dateFormat),
   },
   {
     contents_count: 13,
-    current_interval: "2019-03-19T07:38:41.000+00:00",
+    current_interval: moment("2019-03-19 07:38:41", dateFormat),
   },
   {
     contents_count: 29,
-    current_interval: "2019-03-20T14:50:45.000+00:00",
+    current_interval: moment("2019-03-20 14:50:45", dateFormat),
   },
 ];
 
