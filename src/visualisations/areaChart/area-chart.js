@@ -4,7 +4,7 @@ import './area-chart.scss';
 
 const baseColor = '#444444';
 const textColor = '#737070';
-const circleColor = '#E43556';
+const circleColor = '#919191';
 const circleInnerColor = 'white';
 const textFontSize = '14px';
 const yStrokeColor = '#282828';
@@ -35,7 +35,7 @@ function addXGridGradient(svg) {
 }
 
 function addChartGradient(svg, uniqKey) {
-  const gradient = ['rgba(67,66,66,0.9)', 'rgba(117,117,117,0.1)'];
+  const gradient = ['white', 'rgba(117,117,117,0.1)'];
   const colorScale = d3.scaleLinear().range(gradient).domain([1, 2]);
   const linearGradient = svg.append("defs")
     .append("linearGradient")
@@ -51,7 +51,7 @@ function addChartGradient(svg, uniqKey) {
     .attr("stop-color", colorScale(2));
 }
 
-function addLineGradient(svg, theme, uniqKey) {
+function addLineGradient(svg, uniqKey) {
   const gradient = ['white', 'rgb(114,97,97)'];
   const colorScale = d3.scaleLinear().range(gradient).domain([1, 2]);
   const linearGradient = svg.append("defs")
@@ -71,19 +71,21 @@ function addLineGradient(svg, theme, uniqKey) {
 function calculateTextPositions(items) {
   const labelsArray = [];
   for (let i = 0; i < items.length; i++) {
-    labelsArray.push(formatMonth(items[i].label.toDate()));
+    labelsArray.push(formatMonth(items[i].label));
   }
   const uniqMonths = Array.from(new Set(labelsArray));
 
   const xPositions = uniqMonths.map(month => {
     const start = labelsArray.indexOf(month);
     const end = labelsArray.lastIndexOf(month) < (labelsArray.length - 1) ? labelsArray.lastIndexOf(month) + 1: labelsArray.lastIndexOf(month);
-    let dateStart = items[start].label.toDate();
-    let endDate = items[end].label.toDate();
+    let dateStart = items[start].label;
+    let endDate = items[end].label;
     if(start !== 0) {
+      dateStart =  new Date(dateStart.getTime());
       dateStart.setDate(1);
     }
     if(end !== labelsArray.length - 1) {
+      endDate =  new Date(endDate.getTime());
       endDate.setDate(0);
     }
     return new Date((dateStart.getTime() + endDate.getTime()) / 2);
@@ -236,12 +238,12 @@ function renderCircle({cx, cy, svg}) {
 }
 
 function findDataItem(data, datePoint) {
-  const i = d3.bisector(d => d.label.toDate()).left(data, datePoint); // returns the index to the current data item
+  const i = d3.bisector(d => d.label).left(data, datePoint); // returns the index to the current data item
 
   if (i === 0) return data[i];
-  const d0 = data[i - 1].label.toDate();
+  const d0 = data[i - 1].label;
   if (i >= data.length) return data[i - 1];
-  const d1 = data[i].label.toDate();
+  const d1 = data[i].label;
   // work out which date value is closest to the mouse
   const realIndex = datePoint - d0 > d1 - datePoint ? i : i - 1;
   return data[realIndex];
@@ -255,7 +257,7 @@ export function areaChart({
 
   /*calculate metrics*/
   const xScale = d3.scaleTime()
-    .domain([data[0].label.toDate(), data[data.length - 1].label.toDate()])
+    .domain([data[0].label, data[data.length - 1].label])
     .range([0, width]);
 
   const yScale = d3.scaleLinear()
@@ -264,7 +266,7 @@ export function areaChart({
 
   const lineScale = d3.line()
     .x(function (d) {
-      return xScale(d.label.toDate());
+      return xScale(d.label);
     })
     .y(function (d) {
       return yScale(d.value);
@@ -273,7 +275,7 @@ export function areaChart({
 
   const areaScale = d3.area()
     .x(function (d) {
-      return xScale(d.label.toDate());
+      return xScale(d.label);
     })
     .y0(height - 20)
     .y1(function (d) {
@@ -327,13 +329,13 @@ export function areaChart({
     const item = findDataItem(data, datePoint);
 
     renderCircle({
-      cx: xScale(item.label.toDate()),
+      cx: xScale(item.label),
       cy: yScale(item.value),
       svg: gr,
     });
     buildTooltip({
       group: gr,
-      x: xScale(item.label.toDate()),
+      x: xScale(item.label),
       y: yScale(item.value),
       tooltipValue: item.tooltipValue,
     })
@@ -344,16 +346,16 @@ export function areaChart({
     const item = findDataItem(data, datePoint);
     const group = svg
         .select('.area-chart__tooltip-group');
-    if(!group.select(`[data-item="${item.label.toDate()}"]`).empty()) {
+    if(!group.select(`[data-item="${item.label}"]`).empty()) {
       return;
     }
-    group.attr('data-item', item.label.toDate())
+    group.attr('data-item', item.label)
     group
         .selectAll('circle')
         .transition()
         .duration(50)
         .ease(d3.easeLinear)
-        .attr('cx', xScale(item.label.toDate()))
+        .attr('cx', xScale(item.label))
         .attr('cy', yScale(item.value));
 
     group
@@ -361,7 +363,7 @@ export function areaChart({
         .transition()
         .duration(50)
         .ease(d3.easeLinear)
-        .attr('x', xScale(item.label.toDate()) - wrapperWidth / 2)
+        .attr('x', xScale(item.label) - wrapperWidth / 2)
         .attr('y', yScale(item.value) - wrapperHeight);
 
     group
