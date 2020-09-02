@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 
 import areaChart from "./visualisations/areaChart";
 import "./app.scss";
+import {generateFakeData} from "./fakeData";
 
 function createChartContainer(title) {
   const uId = uuid();
@@ -25,13 +26,30 @@ function createChartContainer(title) {
   return uId;
 }
 
-function initDemo() {
+function initAreaChart() {
   const areaId = createChartContainer("Area chart");
   const area = areaChart(`[data-id="${areaId}"]`);
-  area.render();
+  const data = generateFakeData(100).map(({ time, value }) => ({
+    label: time,
+    value: value,
+    tooltipValue: value,
+  }))
+  area.render(data);
   window.addEventListener('resize', () => {
-    area.update();
-  })
+    area.update(data);
+  });
+  setInterval(() => {
+    const dataUpdate = generateFakeData(100).map(({ time, value }) => ({
+      label: time,
+      value: value,
+      tooltipValue: value,
+    }))
+    area.update(dataUpdate);
+  }, 10000)
+}
+
+function initDemo() {
+  initAreaChart();
 }
 
 window.onload = () => {

@@ -13,7 +13,7 @@ const xAxisOffset = 20;
 const wrapperWidth = 56;
 const wrapperHeight = 40;
 
-const formatMonth = d3.timeFormat('%b')
+const getMonthFormat = d3.timeFormat("%b");
 
 function addXGridGradient(svg) {
   const colorScale = d3.scaleLinear().range([textColor, '#12110F', 'black']).domain([1, 2, 3]);
@@ -68,35 +68,6 @@ function addLineGradient(svg, uniqKey) {
     .attr("stop-color", colorScale(2));
 }
 
-function calculateTextPositions(items) {
-  const labelsArray = [];
-  for (let i = 0; i < items.length; i++) {
-    labelsArray.push(formatMonth(items[i].label));
-  }
-  const uniqMonths = Array.from(new Set(labelsArray));
-
-  const xPositions = uniqMonths.map(month => {
-    const start = labelsArray.indexOf(month);
-    const end = labelsArray.lastIndexOf(month) < (labelsArray.length - 1) ? labelsArray.lastIndexOf(month) + 1: labelsArray.lastIndexOf(month);
-    let dateStart = items[start].label;
-    let endDate = items[end].label;
-    if(start !== 0) {
-      dateStart =  new Date(dateStart.getTime());
-      dateStart.setDate(1);
-    }
-    if(end !== labelsArray.length - 1) {
-      endDate =  new Date(endDate.getTime());
-      endDate.setDate(0);
-    }
-    return new Date((dateStart.getTime() + endDate.getTime()) / 2);
-  });
-
-  return uniqMonths.map((month, i) => ({
-    month,
-    position: xPositions[i]
-  }))
-}
-
 function removeAxisParts({svg}) {
   const yAxis = svg.select('.area-chart__y-axis');
   yAxis
@@ -104,10 +75,6 @@ function removeAxisParts({svg}) {
       .remove();
   yAxis.selectAll('path').remove();
   yAxis.selectAll('g:first-of-type').remove();
-
-  svg
-      .select('.area-chart__x-axis')
-      .selectAll('line').remove();
 
   const xGridElement = svg.select(".area-chart__x-grid")
 
@@ -133,18 +100,27 @@ function updateAxis({
                       xScale,
                       height,
                       maxValue,
-                      width,
-                      items}) {
+                      width}) {
   const yAxis = d3.axisRight(yScale);
   const xAxis = d3.axisBottom(xScale);
-  const positions = calculateTextPositions(items);
 
   const xAxisElement = svg.select(".area-chart__x-axis")
     .attr('transform', `translate(0, ${height - xAxisOffset})`)
-    .call(xAxis.tickSize(0));
+    .call(xAxis);
 
   xAxisElement.select('path').attr('stroke', baseColor);
-  xAxisElement.selectAll('text').remove();
+  xAxisElement.selectAll('line').attr('stroke', baseColor);
+  xAxisElement.selectAll('text')
+      .attr('stroke', textColor)
+      .attr('fill', textColor)
+      .attr('font-size', textFontSize)
+      .attr("transform", `translate(-15, 10) rotate(-45)`)
+      .text((x) => {
+
+        if(x.getMonth() === 0) return x.getFullYear();
+
+        return getMonthFormat(x);
+      });
 
   const xGridElement = svg.select(".area-chart__x-grid")
     .attr("stroke", "url(#area-chart__x-axis-gradient)")
@@ -155,6 +131,7 @@ function updateAxis({
     );
 
   xGridElement.selectAll('line').attr("stroke", yStrokeColor);
+  xGridElement.selectAll('text').remove();
 
   const yAxisElement = svg.select(".area-chart__y-axis")
     .style("stroke-dasharray", yStrokeDash)
@@ -163,31 +140,10 @@ function updateAxis({
         .tickValues([0, maxValue / 2 - maxValue / 20, maxValue - maxValue / 20])
         .tickSize(width)
     );
-  svg.select(".area-chart__positions-container").remove();
-
-  const positionsContainer = svg
-      .append('g')
-      .attr("class", "area-chart__positions-container")
-  positions.forEach(({
-                       position, month
-                     }) => {
-    positionsContainer
-      .append('g')
-      .attr('transform', `translate(${xScale(position)}, ${height})`)
-      .append('text')
-      .style('fill', textColor)
-      .style('font-size', textFontSize)
-      .text(month.toUpperCase());
-  });
 
   yAxisElement.selectAll('line').attr('stroke', yStrokeColor);
 
   removeAxisParts({svg});
-
-  return {
-    xAxisElement,
-    yAxisElement,
-  }
 }
 
 function buildTooltip({group, x, y, tooltipValue, additionalClass}) {
@@ -252,8 +208,8 @@ function findDataItem(data, datePoint) {
 export function areaChart({
                             data, width = 510, height = 255, selector, uniqKey
                           }) {
-  const maxValue = Math.max(...data.map(x => x.value), 0);
-  const minValue = Math.min(...data.map(x => x.value), 0);
+  let maxValue = Math.max(...data.map(x => x.value), 0);
+  let minValue = Math.min(...data.map(x => x.value), 0);
 
   /*calculate metrics*/
   const xScale = d3.scaleTime()
@@ -270,8 +226,7 @@ export function areaChart({
     })
     .y(function (d) {
       return yScale(d.value);
-    })
-      .curve(d3.curveCatmullRom.alpha(0.5));
+    });
 
   const areaScale = d3.area()
     .x(function (d) {
@@ -280,8 +235,7 @@ export function areaChart({
     .y0(height - 20)
     .y1(function (d) {
       return yScale(d.value);
-    })
-      .curve(d3.curveCatmullRom.alpha(0.5));
+    });
 
 
   const chartContainer = d3.select(selector)
@@ -292,13 +246,14 @@ export function areaChart({
   addChartGradient(chartContainer, uniqKey);
   addLineGradient(chartContainer, uniqKey);
 
-  const svg = chartContainer.data(data)
-    .attr('width', width)
+  const svg = chartContainer
+      .data([data])
+      .attr('width', width)
     .attr('height', height)
     .append('g');
 
   createAxis({svg});
-  updateAxis({svg, height, maxValue, width, items: data, xScale, yScale});
+  updateAxis({svg, height, maxValue, width, xScale, yScale});
 
   svg
     .append('g')
@@ -318,6 +273,12 @@ export function areaChart({
     .attr('stroke-width', '1px')
     .attr('d', lineScale);
 
+  const dataStore = {
+    value: data,
+    get: () => dataStore.value,
+    set: (value) => dataStore.value = value,
+  };
+
   chartContainer
   .on('mouseover', function () {
     const gr = svg
@@ -326,7 +287,7 @@ export function areaChart({
     const mouseData = d3.mouse(this);
 
     const datePoint = xScale.invert(mouseData[0]);
-    const item = findDataItem(data, datePoint);
+    const item = findDataItem(dataStore.get(), datePoint);
 
     renderCircle({
       cx: xScale(item.label),
@@ -343,7 +304,7 @@ export function areaChart({
   .on('mousemove', function () {
     const mouseData = d3.mouse(this);
     const datePoint = xScale.invert(mouseData[0]);
-    const item = findDataItem(data, datePoint);
+    const item = findDataItem(dataStore.get(), datePoint);
     const group = svg
         .select('.area-chart__tooltip-group');
     if(!group.select(`[data-item="${item.label}"]`).empty()) {
@@ -381,8 +342,20 @@ export function areaChart({
   })
 
   return (newProps) => {
-    xScale.range([0, newProps.width]);
-    yScale.range([newProps.height - 20, 0]);
+    const newData = newProps.data || data;
+    dataStore.set(newData)
+    let maxValue = Math.max(...newData.map(x => x.value), 0);
+    let minValue = Math.min(...newData.map(x => x.value), 0);
+    chartContainer
+        .data(newData)
+        .attr('width', newProps.width)
+        .attr('height', newProps.height)
+    xScale
+        .range([0, newProps.width])
+        .domain([newData[0].label, newData[newData.length - 1].label]);
+    yScale
+        .range([newProps.height - 20, 0])
+        .domain([minValue, maxValue + maxValue / 10]);
     areaScale
         .y0(newProps.height - 20)
     chartContainer
@@ -391,13 +364,17 @@ export function areaChart({
 
     svg
         .select('.area-chart__area-gradient')
-        .datum(data)
+        .datum(newData)
+        .transition()
+        .duration(100)
         .attr('d', areaScale);
     svg
         .select('.area-chart__area-path')
-        .datum(data)
+        .datum(newData)
+        .transition()
+        .duration(100)
         .attr('d', lineScale);
 
-    updateAxis({svg, height: newProps.height, maxValue, width: newProps.width, items: data, xScale, yScale});
+    updateAxis({svg, height: newProps.height, maxValue, width: newProps.width, xScale, yScale});
   };
 }
