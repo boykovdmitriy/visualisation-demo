@@ -45,9 +45,23 @@ export function generateBarData(count) {
     });
   }
   const sum = res.reduce((acc, v) => acc + v.value, 0);
-console.log(res)
+
   return res.map((x) => ({
     ...x,
     tooltipValue: x.value / (sum / 100),
   }));
+}
+
+export function generateHorizontalBarData(count) {
+  const res = [];
+
+  for (let i = 0; i < count; i++) {
+    const title = `${faker.lorem.word()}-${i}`;
+    res.push({
+      label: title,
+      value: faker.random.number(),
+    });
+  }
+
+  return res;
 }

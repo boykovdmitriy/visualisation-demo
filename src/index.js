@@ -2,8 +2,9 @@ import { v4 as uuid } from "uuid";
 
 import areaChart from "./visualisations/areaChart";
 import "./app.scss";
-import { generateBarData, generateFakeData } from "./fakeData";
+import {generateBarData, generateFakeData, generateHorizontalBarData} from "./fakeData";
 import barChart from "./visualisations/barChart";
+import horizontalBarChart from "./visualisations/horizontalBarChart";
 
 function createChartContainer(title) {
   const uId = uuid();
@@ -58,10 +59,20 @@ function initBarChart() {
     barChartComp.update();
   });
 }
+function initHorizontalBarChart() {
+  const barId = createChartContainer("Horizontal chart");
+
+  const horizontalBarChartComp = horizontalBarChart(`[data-id="${barId}"]`);
+  horizontalBarChartComp.render(generateHorizontalBarData(8));
+  window.addEventListener("resize", () => {
+    horizontalBarChartComp.update();
+  });
+}
 
 function initDemo() {
   initAreaChart();
   initBarChart();
+  initHorizontalBarChart();
 }
 
 window.onload = () => {
