@@ -2,7 +2,8 @@ import { v4 as uuid } from "uuid";
 
 import areaChart from "./visualisations/areaChart";
 import "./app.scss";
-import {generateFakeData} from "./fakeData";
+import { generateBarData, generateFakeData } from "./fakeData";
+import barChart from "./visualisations/barChart";
 
 function createChartContainer(title) {
   const uId = uuid();
@@ -33,9 +34,9 @@ function initAreaChart() {
     label: time,
     value: value,
     tooltipValue: value,
-  }))
+  }));
   area.render(data);
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     area.update(data);
   });
   setInterval(() => {
@@ -43,13 +44,24 @@ function initAreaChart() {
       label: time,
       value: value,
       tooltipValue: value,
-    }))
+    }));
     area.update(dataUpdate);
-  }, 10000)
+  }, 10000);
+}
+
+function initBarChart() {
+  const barId = createChartContainer("Bar chart");
+
+  const barChartComp = barChart(`[data-id="${barId}"]`);
+  barChartComp.render(generateBarData(15));
+  window.addEventListener("resize", () => {
+    barChartComp.update();
+  });
 }
 
 function initDemo() {
   initAreaChart();
+  initBarChart();
 }
 
 window.onload = () => {
