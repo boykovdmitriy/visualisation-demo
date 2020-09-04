@@ -9,7 +9,7 @@ export default (selector) => {
             const width = container.offsetWidth;
             update = barChart({
                 width,
-                height: 0.5 * width,
+                height: 0.7 * width,
                 selector,
                 data,
             });
@@ -19,7 +19,7 @@ export default (selector) => {
             const width = container.offsetWidth;
 
             if (update) {
-                update({ width, height: 0.5 * width, data });
+                update({ width, height: 0.7 * width, data });
             }
         },
     };

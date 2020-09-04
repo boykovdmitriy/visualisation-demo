@@ -165,8 +165,13 @@ function renderAxis({
   yAxisElement.selectAll("path").remove();
 }
 
-function renderBars({ svg, xScale, yScale, data, actualHeight, maxValue }) {
-  const barPieSize = (actualHeight - yScale(maxValue)) / BAR_COLORS.length;
+function renderBars({ svg, xScale, yScale, data, actualHeight, maxValue, colorScale }) {
+  const barPieSize = 5;
+  const maxPieCount = (actualHeight - yScale(maxValue)) / barPieSize;
+
+  colorScale
+      .domain([0, maxPieCount]);
+
   const pieSize = barPieSize - 1;
   svg.selectAll('[data-type="bar-group"]').remove();
   data.forEach((x) => {
@@ -180,7 +185,7 @@ function renderBars({ svg, xScale, yScale, data, actualHeight, maxValue }) {
       barGroup
         .append("rect")
         .attr("class", "bar-chart__bar-dash")
-        .attr("fill", BAR_COLORS[i])
+        .attr("fill", colorScale(i))
         .attr("x", xScale(x.shortLabel))
         .attr("width", xScale.bandwidth())
         .attr("y", actualHeight - barPieSize * (i + 1))
@@ -190,7 +195,7 @@ function renderBars({ svg, xScale, yScale, data, actualHeight, maxValue }) {
       barGroup
         .append("rect")
         .attr("class", "bar-chart__bar-dash")
-        .attr("fill", BAR_COLORS[pieCount])
+        .attr("fill", colorScale(pieCount))
         .attr("x", xScale(x.shortLabel))
         .attr("width", xScale.bandwidth())
         .attr(
@@ -262,6 +267,9 @@ export function barChart({
 
   const yScale = d3.scaleLinear().domain([0, yDomain]).range([actualHeight, 0]);
 
+  const colorScale = d3.scaleLinear()
+      .range(['#311415', "#20C9A7"]);
+
   const svg = d3
     .select(selector)
     .append("svg")
@@ -285,7 +293,7 @@ export function barChart({
     actualWidth,
   });
 
-  renderBars({ svg: container, actualHeight, yScale, xScale, data, maxValue });
+  renderBars({ svg: container, actualHeight, yScale, xScale, data, maxValue, colorScale });
 
   return ({ data: updatedData, width, height }) => {
     const newData = updatedData || data;
@@ -322,6 +330,7 @@ export function barChart({
       xScale,
       data: newData,
       maxValue,
+      colorScale
     });
   };
 }
