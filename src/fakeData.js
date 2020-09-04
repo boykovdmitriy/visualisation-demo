@@ -1,4 +1,21 @@
-import faker from "faker";
+const words = [
+  "education",
+  "veil",
+  "boast",
+  "vacation",
+  "political",
+  "rhetorical",
+  "clumsy",
+  "adhesive",
+  "ladybug",
+  "rock",
+  "physical",
+  "current",
+  "thumb",
+  "secretary",
+  "ground",
+  "gentle",
+];
 
 function randomDate(start, end) {
   return new Date(
@@ -37,11 +54,11 @@ export function generateBarData(count) {
   const res = [];
 
   for (let i = 0; i < count; i++) {
-    const title = faker.lorem.word();
+    const title = words[i];
     res.push({
       label: title,
       shortLabel: title.length > 5 ? title.slice(0, 5) + '...' : title,
-      value: faker.random.number(),
+      value: getRandomInt(1000),
     });
   }
   const sum = res.reduce((acc, v) => acc + v.value, 0);
@@ -56,10 +73,10 @@ export function generateHorizontalBarData(count) {
   const res = [];
 
   for (let i = 0; i < count; i++) {
-    const title = `${faker.lorem.word()}-${i}`;
+    const title = words[i];
     res.push({
       label: title,
-      value: faker.random.number(),
+      value: getRandomInt(1000),
     });
   }
 
