@@ -12,8 +12,31 @@ body {
   flex-direction: column;
 }
 
+.title {
+  color: white;
+  padding: 1rem;
+}
+
+.description {
+  color: white;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.main__content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
 .container {
-  width: 70%;
+  width: 60%;
+
+  @media (max-width: 600px) {
+    width: 90%;
+  }
 }
 
 .chart {

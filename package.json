@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "NODE_ENV=development parcel src/index.html --open",
     "build": "NODE_ENV=production parcel build src/index.html --public-url https://boykovdmitriy.github.io/visualisation-demo/",
-    "predeploy": "npm run build",
+    "predeploy": "npm run clean && npm run build",
+    "clean" : "gh-pages-clean",
     "deploy": "gh-pages -d dist",
     "precommit": "lint-staged"
   },
